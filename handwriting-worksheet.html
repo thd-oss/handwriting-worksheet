@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>바른 글씨 쓰기 학습지 만들기</title>
+  <meta name="description" content="초등학생을 위한 바른 글씨 쓰기 학습지를 손쉽게 만들고 인쇄할 수 있는 웹앱입니다." />
+
+  <!--
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  폰트 라이선스 및 오프라인 환경 안내                          ║
+    ╠══════════════════════════════════════════════════════════════╣
+    ║  현재 Google Fonts CDN 사용 중입니다.                         ║
+    ║                                                              ║
+    ║  [오프라인 전환 방법]                                         ║
+    ║  1. fonts.google.com 에서 원하는 폰트의 woff2 파일 다운로드    ║
+    ║  2. 이 HTML 파일과 같은 폴더의 ./fonts/ 디렉토리에 저장        ║
+    ║  3. 아래 Google Fonts <link>를 제거하고, 아래 @font-face       ║
+    ║     주석 블록을 활성화하세요.                                  ║
+    ║                                                              ║
+    ║  [오프라인 @font-face 예시 – 주석 해제 후 사용]               ║
+    ║  @font-face {                                                 ║
+    ║    font-family: 'Noto Sans KR';                               ║
+    ║    src: url('./fonts/NotoSansKR-Bold.woff2') format('woff2'); ║
+    ║    font-weight: 700;                                          ║
+    ║  }                                                            ║
+    ╚══════════════════════════════════════════════════════════════╝
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Nanum+Gothic:wght@700;800&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Do+Hyeon&family=Black+Han+Sans&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       디자인 토큰
+    ═══════════════════════════════════════ */
+    :root {
+      --clr-bg:          #0f1117;
+      --clr-surface:     #1a1d27;
+      --clr-card:        #20242f;
+      --clr-border:      #2e3348;
+      --clr-accent:      #6c63ff;
+      --clr-accent-glow: rgba(108, 99, 255, 0.25);
+      --clr-accent2:     #ff6b9d;
+      --clr-text-pri:    #e8eaf0;
+      --clr-text-sec:    #8b90a0;
+      --clr-text-muted:  #555a6e;
+      --radius-sm:       8px;
+      --radius-md:       14px;
+      --shadow-glow:     0 0 20px rgba(108,99,255,0.3);
+      --tr:              all 0.22s cubic-bezier(.4,0,.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--clr-bg);
+      color: var(--clr-text-pri);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════
+       앱 헤더
+    ═══════════════════════════════════════ */
+    .app-header {
+      background: linear-gradient(135deg, #1a1d27, #20242f);
+      border-bottom: 1px solid var(--clr-border);
+      padding: 13px 22px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--clr-accent), var(--clr-accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      box-shadow: var(--shadow-glow);
+    }
+    .title-group h1 {
+      font-size: .95rem; font-weight: 700; letter-spacing: -.3px;
+      background: linear-gradient(90deg,#e8eaf0,#a0a8c0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .title-group p { font-size: .7rem; color: var(--clr-text-muted); margin-top: 2px; }
+    .header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 15px; border-radius: var(--radius-sm);
+      font-size: .8rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; border: none; transition: var(--tr);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--clr-accent), #8b84ff);
+      color: #fff; box-shadow: 0 4px 15px var(--clr-accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-ghost {
+      background: rgba(255,255,255,.06); color: var(--clr-text-sec);
+      border: 1px solid var(--clr-border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.1); color: var(--clr-text-pri); }
+
+    /* ═══════════════════════════════════════
+       메인 레이아웃
+    ═══════════════════════════════════════ */
+    .app-main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: calc(100vh - 63px);
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════
+       제어부
+    ═══════════════════════════════════════ */
+    .controls-panel {
+      background: var(--clr-surface);
+      border-right: 1px solid var(--clr-border);
+      overflow-y: auto;
+      padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 13px;
+    }
+    .controls-panel::-webkit-scrollbar { width: 4px; }
+    .controls-panel::-webkit-scrollbar-thumb { background: var(--clr-border); border-radius: 2px; }
+
+    .ctrl-section {
+      background: var(--clr-card);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: 13px 13px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: var(--tr);
+    }
+    .ctrl-section:hover { border-color: rgba(108,99,255,.3); }
+
+    .ctrl-title {
+      font-size: .7rem; font-weight: 700; color: var(--clr-accent);
+      text-transform: uppercase; letter-spacing: .8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ctrl-title::before {
+      content: '';
+      width: 3px; height: 11px;
+      background: linear-gradient(to bottom, var(--clr-accent), var(--clr-accent2));
+      border-radius: 2px;
+    }
+
+    /* textarea */
+    #input-text {
+      width: 100%; min-height: 95px;
+      background: rgba(0,0,0,.3); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      color: var(--clr-text-pri);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: .88rem; line-height: 1.6;
+      padding: 9px 11px; resize: vertical; outline: none;
+      transition: var(--tr);
+    }
+    #input-text:focus { border-color: var(--clr-accent); box-shadow: 0 0 0 3px var(--clr-accent-glow); }
+    #input-text::placeholder { color: var(--clr-text-muted); }
+
+    /* select */
+    .ctrl-select {
+      width: 100%;
+      background: rgba(0,0,0,.3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b90a0' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      color: var(--clr-text-pri);
+      font-family: 'Noto Sans KR', sans-serif; font-size: .84rem;
+      padding: 8px 30px 8px 11px;
+      outline: none; cursor: pointer;
+      -webkit-appearance: none; appearance: none;
+      transition: var(--tr);
+    }
+    .ctrl-select:focus { border-color: var(--clr-accent); }
+    .ctrl-select option { background: #20242f; }
+
+    /* 폰트 미리보기 */
+    .font-preview {
+      background: #fff; border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 17px; color: #333;
+      text-align: center; letter-spacing: 3px;
+      border: 1px solid #e0e0e0;
+    }
+
+    /* 세그먼트 */
+    .seg-group { display: flex; gap: 3px; background: rgba(0,0,0,.3); border: 1px solid var(--clr-border); border-radius: var(--radius-sm); padding: 3px; }
+    .seg-btn {
+      flex: 1; padding: 7px 4px;
+      border: none; background: transparent;
+      color: var(--clr-text-sec);
+      border-radius: 6px; font-size: .7rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; transition: var(--tr);
+      text-align: center; line-height: 1.35;
+    }
+    .seg-btn:hover:not(.active) { background: rgba(255,255,255,.06); color: var(--clr-text-pri); }
+    .seg-btn.active { background: linear-gradient(135deg,var(--clr-accent),#8b84ff); color:#fff; box-shadow: 0 2px 10px var(--clr-accent-glow); }
+
+    /* 토글 스위치 */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .toggle-label-text { font-size: .79rem; color: var(--clr-text-sec); font-weight: 500; line-height: 1.4; cursor: pointer; }
+    .toggle-label-text small { display: block; font-size: .67rem; color: var(--clr-text-muted); margin-top: 2px; }
+
+    .toggle-sw { position: relative; width: 40px; height: 21px; flex-shrink: 0; }
+    .toggle-sw input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--clr-border); border-radius: 11px;
+      cursor: pointer; transition: var(--tr);
+    }
+    .toggle-track::before {
+      content: ''; position: absolute;
+      width: 15px; height: 15px; left: 3px; top: 3px;
+      background: var(--clr-text-muted); border-radius: 50%;
+      transition: var(--tr);
+    }
+    .toggle-sw input:checked + .toggle-track { background: var(--clr-accent); }
+    .toggle-sw input:checked + .toggle-track::before { transform: translateX(19px); background: #fff; }
+
+    /* 슬라이더 */
+    .slider-group { display: flex; flex-direction: column; gap: 9px; }
+    .slider-item { display: flex; flex-direction: column; gap: 4px; }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; }
+    .slider-name { font-size: .75rem; color: var(--clr-text-sec); font-weight: 500; }
+    .slider-val  { font-size: .72rem; color: var(--clr-accent); font-weight: 700; min-width: 28px; text-align: right; }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
+      background: var(--clr-border); border-radius: 2px;
+      outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      background: linear-gradient(135deg, var(--clr-accent), #8b84ff);
+      border-radius: 50%; cursor: pointer;
+      box-shadow: 0 2px 8px var(--clr-accent-glow);
+      transition: var(--tr);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px; height: 16px;
+      background: linear-gradient(135deg, var(--clr-accent), #8b84ff);
+      border: none; border-radius: 50%; cursor: pointer;
+    }
+
+    /* 원고지 안내 배너 */
+    .ms-hint {
+      background: rgba(108,99,255,.08);
+      border-left: 2px solid var(--clr-accent);
+      border-radius: 0 6px 6px 0;
+      padding: 7px 9px;
+      font-size: .68rem; color: var(--clr-text-muted); line-height: 1.65;
+    }
+    .ms-hint b { color: var(--clr-accent); }
+
+    /* 인쇄 안내 */
+    .print-hint {
+      background: linear-gradient(135deg, rgba(108,99,255,.12), rgba(255,107,157,.08));
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: var(--radius-sm); padding: 11px;
+      font-size: .73rem; color: var(--clr-text-sec); line-height: 1.7;
+    }
+    .print-hint strong { color: var(--clr-accent); }
+
+    /* 맞춤법 검사 결과 */
+    .spell-result {
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
+      margin-top: 8px;
+      font-size: .72rem;
+      line-height: 1.75;
+      color: var(--clr-text-sec);
+      max-height: 130px;
+      overflow-y: auto;
+      word-break: break-all;
+    }
+    .spell-check-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 8px 14px;
+      background: linear-gradient(135deg, var(--clr-accent), #8b84ff);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-size: .77rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: var(--tr);
+    }
+    .spell-check-btn:hover { filter: brightness(1.15); }
+    .spell-check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 한 줄 칸 수 입력 박스 */
+    .num-input-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .num-input-row label {
+      font-size: .75rem; color: var(--clr-text-sec); font-weight: 500;
+    }
+    .num-input {
+      width: 70px;
+      background: rgba(0,0,0,.35);
+      border: 1px solid var(--clr-border);
+      border-radius: 6px;
+      color: var(--clr-text-pri);
+      font-size: .8rem; font-weight: 700;
+      padding: 5px 8px;
+      text-align: center;
+      outline: none;
+      transition: var(--tr);
+    }
+    .num-input:focus { border-color: var(--clr-accent); }
+
+    /* ═══════════════════════════════════════
+       미리보기부
+    ═══════════════════════════════════════ */
+    .preview-panel {
+      background: #2a2d3a; overflow: auto;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 28px 20px;
+    }
+    .preview-panel::-webkit-scrollbar { width: 6px; height: 6px; }
+    .preview-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+    /* A4 용지: 화면 표시용 794px (96dpi × 210mm) */
+    .a4-paper {
+      width: 794px; min-height: 1123px;
+      background: #fff;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+      border-radius: 3px;
+      padding: 18mm 15mm 14mm 15mm;
+      display: flex; flex-direction: column;
+      position: relative; flex-shrink: 0;
+    }
+
+    /* ── 학습지 헤더 ── */
+    .ws-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding-bottom: 7px; border-bottom: 2px solid #222;
+      margin-bottom: 14px; gap: 12px;
+    }
+    /* contenteditable 편집 가능 안내: 항상 점선 표시 */
+    .ws-header [contenteditable] {
+      outline: none;
+      border-bottom: 1px dashed #aaa;
+      transition: border-color .2s, background .2s;
+      color: #222; cursor: text; min-width: 14px;
+      border-radius: 2px; padding: 0 2px;
+    }
+    .ws-header [contenteditable]:hover {
+      border-bottom-color: #6c63ff;
+      background: rgba(108,99,255,.05);
+    }
+    .ws-header [contenteditable]:focus {
+      border-bottom-color: #6c63ff;
+      background: rgba(108,99,255,.1);
+    }
+    /* 인쇄 시 점선 숨김 */
+    @media print {
+      .ws-header [contenteditable] {
+        border-bottom-color: transparent !important;
+        background: transparent !important;
+      }
+    }
+    .ws-title { font-size: 12.5px; font-weight: 700; color: #222; flex: 1; }
+    .ws-sub   { font-size: 11.5px; color: #444; white-space: nowrap; }
+    /* 헤더 편집 안내 배너 (화면에서만 표시) */
+    .ws-header-hint {
+      font-size: 10px; color: #888; text-align: center;
+      margin-bottom: 4px; letter-spacing: 0.2px;
+    }
+    @media print { .ws-header-hint { display: none !important; } }
+
+    /* ── 학습지 본문 ── */
+    .ws-body { flex: 1; display: flex; flex-direction: column; }
+
+    /* ══════════════════════════════════════════
+       공통 셀 (char-cell)
+       - overflow: visible → overflowChar 스팜이 셈 바깥으로 나갈 수 있도록
+    ═══════════════════════════════════════ */
+    .char-cell {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* SVG 래퍼: overflow hidden → 셀 경계 클리핑. overflowChar는 셀 DOM span으로 처리 */
+    .char-svg {
+      position: absolute; inset: 0;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    /* 금칙 처리 결과: 셀 바깥에 찍히는 문장부호 */
+    .char-overflow {
+      position: absolute;
+      z-index: 3;
+      font-size: 0.65em;
+      pointer-events: none;
+      line-height: 1;
+    }
+    /* ? ! → 우측 바깥 중앙 */
+    .char-overflow.overflow-right-mid {
+      right: -0.5em;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    /* . , 같은 닫는 부호 → 우측 하단 */
+    .char-overflow.overflow-right-bot {
+      right: -0.35em;
+      bottom: 0.05em;
+    }
+
+    /* ═══════════════════════════════════════
+       깍두기 공책 (원고지)
+       - 각 행(char-row)에 상·좌 border → 외곽 왼쪽·위 선
+       - 각 셀(char-cell)에 우·하 border → 내부 열 구분선 + 행 하단 선
+       → 더블 보더 없이 깔끔한 단일-픽셀 격자 완성
+    ═══════════════════════════════════════ */
+    .paper-kakduggi .char-row {
+      display: flex; flex-wrap: nowrap;
+      border-top: 1px solid #999;
+      border-left: 1px solid #999;
+    }
+    .paper-kakduggi .char-cell {
+      border-right: 1px solid #999;
+      border-bottom: 1px solid #999;
+    }
+    /* 가로 중심선 */
+    .paper-kakduggi .char-cell::before {
+      content: '';
+      position: absolute; left: 0; right: 0;
+      top: calc(50% - 0.5px); height: 1px;
+      background: #d5d5d5; z-index: 1;
+    }
+    /* 세로 중심선 */
+    .paper-kakduggi .char-cell::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0;
+      left: calc(50% - 0.5px); width: 1px;
+      background: #d5d5d5; z-index: 1;
+    }
+
+    /* 빈 연습행 (번갈아 빈 줄) - kakduggi */
+    .empty-row-kak {
+      display: flex; flex-wrap: nowrap;
+      border-top: 1px solid #c0c0c0;
+      border-left: 1px solid #c0c0c0;
+    }
+    .empty-cell-kak {
+      position: relative; flex-shrink: 0;
+      border-right: 1px solid #c0c0c0;
+      border-bottom: 1px solid #c0c0c0;
+    }
+    .empty-cell-kak::before {
+      content: '';
+      position: absolute; left: 0; right: 0;
+      top: calc(50% - 0.5px); height: 1px;
+      background: #e5e5e5;
+    }
+    .empty-cell-kak::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0;
+      left: calc(50% - 0.5px); width: 1px;
+      background: #e5e5e5;
+    }
+
+    /* 줄공책 (Pure CSS)
+    ═══════════════════════════════════════ */
+    .paper-lined {
+      display: flex;
+      flex-direction: column;
+    }
+    .lined-paragraph {
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: calc(var(--lh) * (1 + var(--alt-rows)));
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--lh) - 1.5px),
+        #aaa calc(var(--lh) - 1.5px),
+        #aaa var(--lh)
+      );
+      border-top: 1.5px solid #aaa;
+    }
+    /* 점선 중앙 보조선 */
+    .lined-paragraph::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent calc(var(--lh) / 2 - 0.5px),
+        #ddd calc(var(--lh) / 2 - 0.5px),
+        #ddd calc(var(--lh) / 2 + 0.5px),
+        transparent calc(var(--lh) / 2 + 0.5px),
+        transparent var(--lh)
+      );
+    }
+    
+    /* 텍스트 컨테이너 */
+    .lined-text-span {
+      position: relative;
+      z-index: 1; /* 보조선 위로 */
+      /* 수학적 계산: 텍스트가 줄의 제일 아래 실선 위에 착지하도록 밀어내기 (위로 시프트) */
+      top: calc(var(--lh) * var(--alt-rows) * -0.5);
+    }
+    /* 스타일별 컬러 적용 */
+    .lined-text-span.style-hidden { color: transparent; }
+    .lined-text-span.style-light  { color: #ccc; }
+    .lined-text-span.style-dotted {
+      color: transparent;
+      -webkit-text-stroke: 1px #aaa;
+    }
+
+    /* ═══════════════════════════════════════
+       글씨 스타일 (SVG text)
+    ═══════════════════════════════════════ */
+
+    /* 점선 글씨 (따라쓰기): stroke-dasharray로 점선 효과 */
+    .style-dotted .char-text {
+      fill: none;
+      stroke: #666;
+      stroke-width: 1.7;
+      stroke-dasharray: 5 3;
+      stroke-linecap: round;
+      paint-order: stroke fill;
+      dominant-baseline: central;
+      text-anchor: middle;
+    }
+
+    /* 옅은 회색 글씨 (덧대어 쓰기) */
+    .style-light .char-text {
+      fill: #c0c0c0; stroke: none;
+      dominant-baseline: central; text-anchor: middle;
+    }
+
+    /* 투명 글씨 (직접 쓰기용) */
+    .style-hidden .char-text {
+      fill: transparent; stroke: none;
+      dominant-baseline: central; text-anchor: middle;
+    }
+
+    /* ═══════════════════════════════════════
+       @media print — 제어부 숨기고 A4 출력
+    ═══════════════════════════════════════ */
+    @media print {
+      .app-header, .controls-panel { display: none !important; }
+      body { background: white !important; margin: 0; padding: 0; }
+      .app-main {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .preview-panel {
+        background: white !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        display: block !important;
+      }
+      .a4-paper {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        padding: 18mm 15mm 14mm 15mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: always;
+      }
+      @page { size: A4 portrait; margin: 0; }
+      [contenteditable]:focus {
+        border-bottom-color: transparent !important;
+        background: transparent !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ 앱 헤더 ══ -->
+  <header class="app-header">
+    <div class="logo">✏️</div>
+    <div class="title-group">
+      <h1>바른 글씨 쓰기 학습지</h1>
+      <p>초등학생 필사 학습지 제작 도구</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="btn-reset">↺ 초기화</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+    </div>
+  </header>
+
+  <!-- ══ 메인 ══ -->
+  <main class="app-main">
+
+    <!-- ── 제어부 ── -->
+    <aside class="controls-panel" aria-label="학습지 설정">
+
+      <!-- 1. 텍스트 입력 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">텍스트 입력</h2>
+        <textarea id="input-text"
+          placeholder="여기에 연습할 문장을 입력하세요.&#10;예) 나는 바른 글씨로 씁니다."
+          rows="5" aria-label="연습 텍스트"></textarea>
+        <div style="font-size:.68rem;color:var(--clr-text-muted);text-align:right">
+          <span id="char-count">0</span>자
+        </div>
+      </section>
+
+      <!-- 2. 폰트 선택 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">폰트 선택</h2>
+        <select class="ctrl-select" id="font-select" aria-label="폰트 선택">
+          <option value="Noto Sans KR|700">Noto Sans KR (기본 고딕)</option>
+          <option value="Nanum Gothic|700">나눔고딕 (Nanum Gothic)</option>
+          <option value="Nanum Myeongjo|700">나눔명조 (Nanum Myeongjo)</option>
+          <option value="Nanum Pen Script|400">나눔손글씨펜 (필기체)</option>
+          <option value="Do Hyeon|400">도현체 (Do Hyeon)</option>
+          <option value="Black Han Sans|400">검은고딕 (Black Han Sans)</option>
+        </select>
+        <div class="font-preview" id="font-preview">가나다 ABC 123</div>
+      </section>
+
+      <!-- 3. 용지 양식 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">용지 양식</h2>
+        <div class="seg-group" role="group" aria-label="용지 양식">
+          <button class="seg-btn active" data-paper="kakduggi" id="paper-kakduggi">
+            ⊞ 깍두기<br><span style="font-size:.62rem;opacity:.75">원고지</span>
+          </button>
+          <button class="seg-btn" data-paper="lined" id="paper-lined">
+            ≡ 줄공책<br><span style="font-size:.62rem;opacity:.75">일반텍스트</span>
+          </button>
+        </div>
+        <div class="ms-hint" id="ms-hint">
+          <b>📐 원고지 작성법 적용</b><br>
+          · 단락 첫 칸 들여쓰기 (비움)<br>
+          · 숫자 2자 → 한 칸 (예: 12, 34)<br>
+          · 영문 소문자 2자 → 한 칸 (예: ab, cd)
+        </div>
+      </section>
+
+      <!-- 4. 글씨 스타일 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">글씨 스타일</h2>
+        <div class="seg-group" role="group" aria-label="글씨 스타일">
+          <button class="seg-btn active" data-style="dotted" id="style-dotted">
+            ··· 점선<br><span style="font-size:.62rem;opacity:.75">따라쓰기</span>
+          </button>
+          <button class="seg-btn" data-style="light" id="style-light">
+            ─ 회색<br><span style="font-size:.62rem;opacity:.75">덧대쓰기</span>
+          </button>
+          <button class="seg-btn" data-style="hidden" id="style-hidden">
+            ☐ 숨김<br><span style="font-size:.62rem;opacity:.75">직접쓰기</span>
+          </button>
+        </div>
+
+        <!-- 번갈아 빈 줄 삽입 -->
+        <div class="toggle-row">
+          <label class="toggle-label-text" for="sel-alt">
+            번갈아 빈 줄 삽입
+            <small>각 줄 아래에 직접 써보는 빈 줄 추가</small>
+          </label>
+          <select id="sel-alt" style="width: 70px; text-align: center; padding: 4px; border-radius: 4px; background: var(--bg-card); color: #fff; border: 1px solid var(--border-color); outline: none;">
+            <option value="0">0줄</option>
+            <option value="1">1줄</option>
+            <option value="2">2줄</option>
+            <option value="3">3줄</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 5. 세부 조절 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">세부 조절</h2>
+        <div class="slider-group">
+          <div class="slider-item">
+            <div class="slider-row">
+              <span class="slider-name">글자 크기</span>
+              <span class="slider-val" id="val-fs">48</span>
+            </div>
+            <input type="range" id="sl-fs" min="10" max="90" step="2" value="48" aria-label="글자 크기" />
+          </div>
+          <div class="slider-item">
+            <div class="slider-row">
+              <span class="slider-name">한 줄 칸 수 (개)</span>
+              <span class="slider-val" id="val-cpr">11</span>
+            </div>
+            <input type="range" id="sl-cpr" min="5" max="30" step="1" value="11" aria-label="한 줄 칸 수" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. 맞춤법 검사 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">맞춤법 검사</h2>
+        <button class="spell-check-btn" id="btn-spell" aria-label="맞춤법 검사 실행">
+          🔍 검사 실행
+        </button>
+        <div class="spell-result" id="spell-result" style="display:none" aria-live="polite"></div>
+      </section>
+
+      <div class="print-hint" role="note">
+        <strong>📌 인쇄 방법</strong><br>
+        <strong>Ctrl+P</strong> (Win) / <strong>Cmd+P</strong> (Mac)<br>
+        또는 상단 「🖨️ 인쇄」 버튼 클릭<br><br>
+        PDF 저장: 프린터를 <strong>「PDF로 저장」</strong>으로 선택
+      </div>
+    </aside>
+
+    <!-- ── 미리보기부 ── -->
+    <section class="preview-panel" aria-label="학습지 미리보기">
+      <div class="a4-paper" id="a4-paper">
+
+        <!-- 상단 헤더 (contenteditable) -->
+        <p class="ws-header-hint">✏️ 아래 항목을 직접 클릭하여 수정할 수 있습니다</p>
+        <header class="ws-header">
+          <div class="ws-title">
+            <span contenteditable="true" id="ws-school" title="클릭하여 학교명 수정">배곧라온초등학교</span>&nbsp;
+            <span contenteditable="true" id="ws-grade" title="클릭하여 학년 수정">3</span>학년&nbsp;
+            <span contenteditable="true" id="ws-class" title="클릭하여 반 수정">___</span>반&nbsp;
+            이름:&nbsp;<span contenteditable="true" id="ws-name" title="클릭하여 이름칸 수정">_______</span>
+          </div>
+          <div class="ws-sub">
+            단원/주제:&nbsp;<span contenteditable="true" id="ws-topic" title="클릭하여 단원명/주제 수정">_______</span>
+          </div>
+        </header>
+
+        <!-- 본문 (JS 렌더링) -->
+        <div class="ws-body" id="ws-body" aria-live="polite" aria-label="학습지 본문"></div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════
+       상수
+    ═══════════════════════════════════════════════════════ */
+
+    /** A4 용지 콘텐츠 폭 (px): 794px - 양쪽 15mm 패딩(≈57px × 2) = 680px */
+    const CONTENT_WIDTH = 680;
+
+    /* ═══════════════════════════════════════════════════════
+       상태(State)
+    ═══════════════════════════════════════════════════════ */
+    const state = {
+      text:          '',
+      paper:         'kakduggi',
+      style:         'dotted',
+      fontFamily:    'Noto Sans KR',
+      fontWeight:    '700',
+      fontSize:      48,
+      cellsPerRow:   11,
+      tracking:      2,   // 고정값 (UI 제거)
+      leading:       8,   // 고정값 (UI 제거)
+      alternateRows: 0,
+    };
+
+    /* ═══════════════════════════════════════════════════════
+       DOM 캐싱
+    ═══════════════════════════════════════════════════════ */
+    const $ = id => document.getElementById(id);
+    const els = {
+      inputText:  $('input-text'),
+      charCount:  $('char-count'),
+      wsBody:     $('ws-body'),
+      a4paper:    $('a4-paper'),
+      fontSelect: $('font-select'),
+      fontPreview:$('font-preview'),
+      msHint:     $('ms-hint'),
+      slFs: $('sl-fs'), valFs: $('val-fs'),
+      slCpr: $('sl-cpr'), valCpr: $('val-cpr'),
+      selAlt:     $('sel-alt'),
+      btnReset:   $('btn-reset'),
+      btnSpell:   $('btn-spell'),
+      spellResult:$('spell-result'),
+    };
+
+    /* ═══════════════════════════════════════════════════════
+       원고지 토크나이저 (정밀 규칙 적용)
+       - 줄임표(……), 줄표(—)는 각각 2칸짜리 토큰 생성
+       - 온점/반점 뒤 공백 무시, 물음표/느낌표 뒤 공백 강제 삽입
+    ═══════════════════════════════════════════════════════ */
+    function tokenizeManuscript(line) {
+      if (line.length === 0) return []; // 빈 줄
+
+      let text = line;
+      // 1. 공백 제거: 온점/반점 뒤, 그리고 [?!] + 닫는부호 뒤 (따옴표 다음 칸 비우지 않음 규정)
+      text = text.replace(/([.,])\s+/g, '$1');
+      text = text.replace(/([?!]["'”’)\]}]+)\s+/g, '$1');
+      
+      // 2. 공백 추가: [?!] 단독 사용 시 (뒤에 닫는 부호나 공백이 없을 때)
+      text = text.replace(/([?!])(?=[^"'”’)\]}\s])/g, '$1 ');
+
+      const tokens = [];
+      tokens.push({ type: 'indent', chars: '' }); // 단락 들여쓰기
+
+      let i = 0;
+      let prevToken = tokens[0];
+
+      while (i < text.length) {
+        const ch = text[i];
+
+        // 3. 마침표/쉼표 + 닫는 따옴표 한 칸에 묶기
+        if (text.substring(i, i + 2).match(/^[.,]["'”’]$/)) {
+          const t = { type: 'punctuation_pair', chars: text.substring(i, i + 2) };
+          tokens.push(t);
+          prevToken = t;
+          i += 2;
+          continue;
+        }
+
+        // 말줄임표 (1칸으로 축소: 2015년 개정안)
+        if (text.substring(i, i + 3) === '...') {
+          const t = { type: 'ellipsis_half', chars: '...' };
+          tokens.push(t);
+          prevToken = t;
+          i += 3;
+          continue;
+        }
+        if (text.substring(i, i + 2) === '……') {
+          const t = { type: 'ellipsis_half', chars: '⋯' };
+          tokens.push(t);
+          prevToken = t;
+          i += 2;
+          continue;
+        }
+
+        // 줄표
+        if (text.substring(i, i + 2) === '--') {
+          const t = { type: 'dash_half', chars: '--' };
+          tokens.push(t);
+          prevToken = t;
+          i += 2;
+          continue;
+        }
+        if (text.substring(i, i + 1) === '—') {
+          const t = { type: 'dash_half', chars: '—' };
+          tokens.push(t);
+          prevToken = t;
+          if (text[i + 1] === '—') i += 2; else i += 1;
+          continue;
+        }
+
+        if (ch === ' ') {
+          const t = { type: 'space', chars: '' };
+          tokens.push(t);
+          prevToken = t;
+          i++;
+        } else if (/[0-9]/.test(ch) && i + 1 < text.length && /[0-9]/.test(text[i + 1])) {
+          const t = { type: 'pair', chars: ch + text[i + 1] };
+          tokens.push(t);
+          prevToken = t;
+          i += 2;
+        } else if (/[a-z]/.test(ch) && i + 1 < text.length && /[a-z]/.test(text[i + 1])) {
+          const t = { type: 'pair', chars: ch + text[i + 1] };
+          tokens.push(t);
+          prevToken = t;
+          i += 2;
+        } else {
+          // 따옴표 종류 식별 (여는/닫는 위치 구분을 위해)
+          let isQuote = ['"', "'", '“', '”', '‘', '’'].includes(ch);
+          let quoteType = null;
+          if (isQuote) {
+             if (['“', '‘'].includes(ch)) quoteType = 'open';
+             else if (['”', '’'].includes(ch)) quoteType = 'close';
+             else {
+               quoteType = (!prevToken || prevToken.type === 'space' || prevToken.type === 'indent') ? 'open' : 'close';
+             }
+          }
+          const t = { type: 'char', chars: ch, quoteType };
+          tokens.push(t);
+          prevToken = t;
+          i++;
+        }
+      }
+
+      return tokens;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SVG 글자 셀 생성
+
+       @param token       { type: 'indent'|'space'|'char'|'pair', chars: string }
+       @param cellSize    셀 너비/높이 (px)
+       @param fontSize    글자 크기 (px)
+       @param styleClass  'style-dotted' | 'style-light' | 'style-hidden'
+       @param fontFamily  선택된 폰트 이름
+       @param fontWeight  선택된 폰트 굵기
+
+       NOTE: overflow:hidden은 CSS .char-cell에서 처리하므로
+             SVG text가 셀 경계 밖으로 나가도 자동 클리핑됩니다.
+    ═══════════════════════════════════════════════════════ */
+    function createCharCell(token, cellSize, fontSize, styleClass, fontFamily, fontWeight) {
+      const cell = document.createElement('div');
+      cell.className = 'char-cell';
+      cell.style.width  = cellSize + 'px';
+      cell.style.height = cellSize + 'px';
+
+      // 빈 셀 (들여쓰기·공백)
+      if (!token.chars) return cell;
+
+      const NS  = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', `0 0 ${cellSize} ${cellSize}`);
+      svg.setAttribute('width',  cellSize);
+      svg.setAttribute('height', cellSize);
+      svg.setAttribute('overflow', 'hidden'); // SVG 자체 클리핑
+      svg.setAttribute('aria-hidden', 'true');
+      svg.classList.add('char-svg');
+
+      const g = document.createElementNS(NS, 'g');
+      g.classList.add(styleClass);
+
+      if (token.type === 'pair') {
+        /* 숫자/소문자 쌍: 셀 안에서 좌우로 나란히 배치
+           pairFontSize: 셀 크기의 약 45% ~ 글자크기 50% 중 작은 값 사용 */
+        const pairFs = Math.round(Math.min(cellSize * 0.46, fontSize * 0.52));
+        const chars  = [...token.chars];
+
+        [[chars[0], 0.27], [chars[1] || '', 0.73]].forEach(([ch, xRatio]) => {
+          if (!ch) return;
+          const t = document.createElementNS(NS, 'text');
+          t.setAttribute('x', Math.round(cellSize * xRatio));
+          t.setAttribute('y', cellSize / 2);
+          t.setAttribute('font-size',   pairFs);
+          t.setAttribute('font-family', fontFamily);
+          t.setAttribute('font-weight', fontWeight);
+          t.setAttribute('class', 'char-text');
+          t.style.textAnchor      = 'middle';  // 인라인: CSS보다 우선순위 높음
+          t.style.dominantBaseline = 'central';
+          t.textContent = ch;
+          g.appendChild(t);
+        });
+      } else if (token.type === 'ellipsis_half') {
+        // 줄임표: 한 칸 중앙 (2015년 개정 - 점 3개)
+        const text = document.createElementNS(NS, 'text');
+        text.setAttribute('x', cellSize / 2);
+        text.setAttribute('y', cellSize / 2);
+        text.setAttribute('font-size', fontSize);
+        text.setAttribute('font-family', fontFamily);
+        text.setAttribute('font-weight', fontWeight);
+        text.setAttribute('class', 'char-text');
+        text.style.textAnchor      = 'middle';
+        text.style.dominantBaseline = 'central';
+        text.textContent = token.chars === '...' ? '...' : '⋯';
+        g.appendChild(text);
+      } else if (token.type === 'dash_half') {
+        // 줄표 가로선
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', 0);
+        line.setAttribute('y1', cellSize / 2);
+        line.setAttribute('x2', cellSize);
+        line.setAttribute('y2', cellSize / 2);
+        line.setAttribute('class', 'char-dash');
+        g.appendChild(line);
+      } else if (token.type === 'punctuation_pair') {
+        // 마침표/쉼표 + 닫는 따옴표: 마침표는 좌측 하단, 따옴표는 우측 상단
+        const chars = [...token.chars];
+        // 마침표/쉼표 (좌측 하단)
+        const t1 = document.createElementNS(NS, 'text');
+        t1.setAttribute('x', cellSize * 0.25);
+        t1.setAttribute('y', cellSize * 0.35);
+        t1.setAttribute('font-size', fontSize);
+        t1.setAttribute('font-family', fontFamily);
+        t1.setAttribute('font-weight', fontWeight);
+        t1.setAttribute('class', 'char-text');
+        t1.style.textAnchor      = 'middle';
+        t1.style.dominantBaseline = 'central';
+        t1.textContent = chars[0];
+        g.appendChild(t1);
+        
+        // 닫는 따옴표 (우측 상단): 칸 안 따옴표와 동일한 fontSize 사용
+        const t2 = document.createElementNS(NS, 'text');
+        t2.setAttribute('x', cellSize * 0.75);
+        // y = Math.ceil(fontSize/2): dominant-baseline:central 기준 텍스트 상단이 칸 상단(0)에 닿음 → 잘리지 않음
+        t2.setAttribute('y', Math.ceil(fontSize / 2));
+        t2.setAttribute('font-size', fontSize);
+        t2.setAttribute('font-family', fontFamily);
+        t2.setAttribute('font-weight', fontWeight);
+        t2.setAttribute('class', 'char-text');
+        t2.style.textAnchor      = 'middle';
+        t2.style.dominantBaseline = 'central';
+        t2.textContent = chars[1];
+        g.appendChild(t2);
+      } else {
+        // 일반 글자
+        const text = document.createElementNS(NS, 'text');
+        
+        if (token.chars === '.' || token.chars === ',') {
+          text.setAttribute('x', cellSize * 0.25);
+          text.setAttribute('y', cellSize * 0.35);
+          text.setAttribute('font-size', fontSize);
+        } else if (token.quoteType === 'open') {
+          // 여는 따옴표: 칸 우측 상단
+          // y = Math.ceil(fontSize/2): dominant-baseline:central 기준 텍스트 상단이 칸 상단(0)에 닿음 → 잘리지 않음
+          text.setAttribute('x', cellSize * 0.75);
+          text.setAttribute('y', Math.ceil(fontSize / 2));
+          text.setAttribute('font-size', fontSize);
+        } else if (token.quoteType === 'close') {
+          // 닫는 따옴표: 칸 좌측 상단
+          text.setAttribute('x', cellSize * 0.25);
+          text.setAttribute('y', Math.ceil(fontSize / 2));
+          text.setAttribute('font-size', fontSize);
+        } else {
+          // 일반 글자: 정중앙
+          text.setAttribute('x', cellSize / 2);
+          text.setAttribute('y', cellSize / 2);
+          text.setAttribute('font-size', fontSize);
+        }
+        
+        text.setAttribute('font-family', fontFamily);
+        text.setAttribute('font-weight', fontWeight);
+        text.setAttribute('class',       'char-text');
+        // 인라인 스타일: CSS(표현속성 레벨)보다 우선순위가 높아 치우침 방지에 확실함
+        text.style.textAnchor       = 'middle';
+        text.style.dominantBaseline = 'central';
+        text.textContent = token.chars;
+        g.appendChild(text);
+      }
+
+      svg.appendChild(g);
+      cell.appendChild(svg);
+
+      // 오버플로우 문장부호: 별도의 overflow:visible SVG로 렌더링하여 본문과 동일한 스타일(점선 등) 유지
+      if (token.overflowChar) {
+        const oSvg = document.createElementNS(NS, 'svg');
+        oSvg.setAttribute('viewBox', `0 0 ${cellSize} ${cellSize}`);
+        oSvg.setAttribute('width', cellSize);
+        oSvg.setAttribute('height', cellSize);
+        oSvg.setAttribute('style', 'position: absolute; inset: 0; z-index: 3; overflow: visible; pointer-events: none;');
+        oSvg.setAttribute('aria-hidden', 'true');
+        
+        const oG = document.createElementNS(NS, 'g');
+        oG.classList.add(styleClass);
+
+        const oText = document.createElementNS(NS, 'text');
+        // 오버플로우 문장부호: 항상 칸 바깥 왼쪽에 바짝 붙여 쓰기
+        // text-anchor: start → 인라인 스타일로 CSS middle 오버라이드
+        oText.style.textAnchor      = 'start';
+        oText.style.dominantBaseline = 'central';
+
+        if (['?', '!'].includes(token.overflowChar)) {
+          // ?/! → 칸 바깥 왼쪽, 세로 중앙
+          oText.setAttribute('x', cellSize);
+          oText.setAttribute('y', cellSize * 0.5);
+          oText.setAttribute('font-size', fontSize);
+        } else if (['.', ','].includes(token.overflowChar)) {
+          // ./,  → 칸 바깥 왼쪽 하단
+          oText.setAttribute('x', cellSize);
+          oText.setAttribute('y', cellSize * 0.35);
+          oText.setAttribute('font-size', fontSize);
+        } else {
+          // 따옴표류 → 칸 바깥 왼쪽 상단
+          // y = Math.ceil(fontSize/2): 텍스트 상단이 0에 닿아 오버플로우 SVG 뷰포트 안에 머무름 → 위로 떠오르지 않음
+          oText.setAttribute('x', cellSize);
+          oText.setAttribute('y', Math.ceil(fontSize / 2));
+          oText.setAttribute('font-size', fontSize);
+        }
+        oText.setAttribute('font-family', fontFamily);
+        oText.setAttribute('font-weight', fontWeight);
+        oText.setAttribute('class', 'char-text');
+        oText.textContent = token.overflowChar;
+        
+        oG.appendChild(oText);
+        oSvg.appendChild(oG);
+        cell.appendChild(oSvg);
+      }
+
+      return cell;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       한 행에 들어갈 셀 크기 자동 계산
+       - 지정된 cellsPerRow 에 맞게 용지 폭을 정확히 채우도록 크기 동적 할당
+    ═══════════════════════════════════════════════════════ */
+    function calcCellSize() {
+      // (용지 폭 - 여백 총합) / 칸 수
+      return (CONTENT_WIDTH - (state.cellsPerRow - 1) * state.tracking) / state.cellsPerRow;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       배열 청킹 유틸 (원고지 금칙 처리 적용)
+       - 행 처음에 오는 닫는 부호를 이전 줄 끝 셀로 병합
+       - 행 끝에 오는 여는 부호를 다음 줄로 넘김
+    ═══════════════════════════════════════════════════════ */
+    function chunkManuscript(tokens, cellsPerRow) {
+      if (tokens.length === 0) return [[]];
+
+      const chunks = [];
+      let currentChunk = [];
+
+      function isOpening(char, prevToken) {
+        if (['(', '[', '{', '<', '«', '「', '『', '“', '‘'].includes(char)) return true;
+        if (char === '"' || char === "'") {
+          return !prevToken || prevToken.type === 'space' || prevToken.type === 'indent';
+        }
+        return false;
+      }
+
+      function isClosing(char, prevToken) {
+        if (['.', ',', '?', '!', ')', ']', '}', '>', '»', '」', '』', '”', '’'].includes(char)) return true;
+        if (char === '"' || char === "'") {
+          return prevToken && prevToken.type !== 'space' && prevToken.type !== 'indent';
+        }
+        return false;
+      }
+
+      let i = 0;
+      while (i < tokens.length) {
+        const token = tokens[i];
+        const prevToken = i > 0 ? tokens[i - 1] : null;
+
+        // 0. 행 처음 공백 무시: 줄바꿈 시 첫 칸 띄어쓰기 생략 (줄바꿈이 띄어쓰기를 대신함)
+        if (currentChunk.length === 0 && token.type === 'space') {
+          i++;
+          continue;
+        }
+
+        // 1. 행 처음 금칙: 닫는 부호면 이전 청크 마지막 셀에 합침
+        if (currentChunk.length === 0 && chunks.length > 0) {
+          if (token.type === 'char' && isClosing(token.chars, prevToken)) {
+            const prevChunk = chunks[chunks.length - 1];
+            if (prevChunk.length > 0) {
+              const lastToken = prevChunk[prevChunk.length - 1];
+              lastToken.overflowChar = (lastToken.overflowChar || '') + token.chars;
+              i++;
+              continue;
+            }
+          }
+        }
+
+        // 2. 행 끝 금칙: 여는 부호거나 2칸 기호의 시작이면 빈칸으로 채우고 다음 줄로 넘김
+        if (currentChunk.length === cellsPerRow - 1) {
+          if ((token.type === 'char' && isOpening(token.chars, prevToken)) ||
+              token.type === 'ellipsis_half' || token.type === 'dash_half') {
+            currentChunk.push({ type: 'space', chars: '' });
+            chunks.push(currentChunk);
+            currentChunk = [];
+            continue;
+          }
+        }
+
+        currentChunk.push(token);
+        i++;
+
+        // 청크가 꽉 차면 분리
+        if (currentChunk.length === cellsPerRow) {
+          chunks.push(currentChunk);
+          currentChunk = [];
+        }
+      }
+
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+      }
+
+      return chunks.length > 0 ? chunks : [[]];
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       일반 배열 청킹 유틸 (줄공책, 빈칸용)
+    ═══════════════════════════════════════════════════════ */
+    function chunkArray(arr, n) {
+      if (arr.length === 0) return [[]];
+      const out = [];
+      for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+      return out;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       빈 연습행 생성 (번갈아 빈 줄 기능)
+       paper 타입에 따라 동일한 시각 구조의 빈 행 반환
+       cellsPerRow를 전달받아 항상 full-width 행을 생성
+    ═══════════════════════════════════════════════════════ */
+    function createEmptyRow(paper, cellSize, tracking, cellsPerRow) {
+      if (paper === 'kakduggi') {
+        const row = document.createElement('div');
+        row.className = 'empty-row-kak';
+        for (let i = 0; i < cellsPerRow; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'empty-cell-kak';
+          cell.style.width  = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+          if (tracking > 0 && i < cellsPerRow - 1) {
+            cell.style.marginRight = tracking + 'px';
+          }
+          row.appendChild(cell);
+        }
+        return row;
+      }
+
+      // paper === 'lined'
+      const row = document.createElement('div');
+      row.className = 'empty-row-lined';
+      row.style.minHeight = cellSize + 'px';
+      return row;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       단일 깍두기 행(char-row) DOM 생성
+    ═══════════════════════════════════════════════════════ */
+    function buildKakRow(tokenChunk, cellSize, fontSize, tracking, sc, fontFamily, fontWeight, cellsPerRow) {
+      const row = document.createElement('div');
+      row.className = 'char-row';
+
+      if (tokenChunk.length === 0) {
+        // 빈 줄 → cellsPerRow 전체를 빈 셀로 채워 칸 구조 유지
+        const count = cellsPerRow || 1;
+        for (let i = 0; i < count; i++) {
+          const ph = document.createElement('div');
+          ph.className = 'char-cell';
+          ph.style.width  = cellSize + 'px';
+          ph.style.height = cellSize + 'px';
+          if (tracking > 0 && i < count - 1) {
+            ph.style.marginRight = tracking + 'px';
+          }
+          row.appendChild(ph);
+        }
+      } else {
+        // 내용 있는 행: 빈 셀로 나머지 채우기 (행이 항상 full-width 격자로 보이도록)
+        const totalCells = cellsPerRow || tokenChunk.length;
+        tokenChunk.forEach((token, ti) => {
+          const cell = createCharCell(token, cellSize, fontSize, sc, fontFamily, fontWeight);
+          if (tracking > 0 && ti < totalCells - 1) {
+            cell.style.marginRight = tracking + 'px';
+          }
+          row.appendChild(cell);
+        });
+        // 남은 칸을 빈 셀로 채움
+        for (let i = tokenChunk.length; i < totalCells; i++) {
+          const ph = document.createElement('div');
+          ph.className = 'char-cell';
+          ph.style.width  = cellSize + 'px';
+          ph.style.height = cellSize + 'px';
+          if (tracking > 0 && i < totalCells - 1) {
+            ph.style.marginRight = tracking + 'px';
+          }
+          row.appendChild(ph);
+        }
+      }
+      return row;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       렌더링 — 깍두기 공책 (원고지 작성법 + 자동 줄바꿈)
+    ═══════════════════════════════════════════════════════ */
+    function renderKakduggi(lines) {
+      const { style, fontFamily, fontWeight, fontSize, cellsPerRow, tracking, leading, alternateRows } = state;
+      const sc = 'style-' + style;
+      const cellSize = calcCellSize();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'paper-kakduggi';
+
+      let isFirst = true;
+
+      lines.forEach(line => {
+        // 단락 토큰화 -> 금칙 처리 전용 청커 사용
+        const tokens = tokenizeManuscript(line);
+        const chunks = chunkManuscript(tokens, cellsPerRow);
+
+        chunks.forEach(chunk => {
+          if (!isFirst) appendGap(wrapper, leading);
+          // cellsPerRow를 buildKakRow에 전달하여 빈 행도 full-width 격자 유지
+          wrapper.appendChild(buildKakRow(chunk, cellSize, fontSize, tracking, sc, fontFamily, fontWeight, cellsPerRow));
+          for (let i = 0; i < alternateRows; i++) {
+            appendGap(wrapper, leading);
+            wrapper.appendChild(createEmptyRow('kakduggi', cellSize, tracking, cellsPerRow));
+          }
+          isFirst = false;
+        });
+      });
+
+      els.wsBody.appendChild(wrapper);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       렌더링 — 줄공책 (자동 줄바꿈)
+
+       핵심 변경:
+         characters 배열을 cellsPerRow 단위로 청킹하여
+         각 청크를 독립적인 line-row로 렌더링.
+         줄공책의 bottom-line은 full-width로 그리기 위해
+         line-row에 width:100%를 적용함.
+    ═══════════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════
+       렌더링 — 줄공책 (일반 텍스트 기반, Pure CSS)
+    ═══════════════════════════════════════════════════════ */
+    function renderLined(lines) {
+      const { style, fontFamily, fontWeight, fontSize, alternateRows } = state;
+      const sc = 'style-' + style;
+      
+      const wrapper = document.createElement('div');
+      wrapper.className = 'paper-lined';
+
+      // 줄 높이는 글자 크기의 1.6배로 설정
+      const lh = Math.round(fontSize * 1.6);
+
+      const p = document.createElement('div');
+      p.className = 'lined-paragraph';
+      
+      // CSS 변수 주입
+      p.style.setProperty('--lh', lh + 'px');
+      p.style.setProperty('--alt-rows', alternateRows);
+
+      const span = document.createElement('span');
+      span.className = 'lined-text-span ' + sc;
+      span.style.fontSize = fontSize + 'px';
+      span.style.fontFamily = fontFamily;
+      span.style.fontWeight = fontWeight;
+      // 전체 텍스트를 하나의 span에 담아 연속된 줄공책 패턴 유지
+      span.textContent = lines.join('\n') || ' ';
+      
+      p.appendChild(span);
+      wrapper.appendChild(p);
+
+      els.wsBody.appendChild(wrapper);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       유틸: 행간 여백 div 삽입
+    ═══════════════════════════════════════════════════════ */
+    function appendGap(parent, leading) {
+      if (leading <= 0) return;
+      const gap = document.createElement('div');
+      gap.style.height = leading + 'px';
+      parent.appendChild(gap);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       메인 렌더링
+    ═══════════════════════════════════════════════════════ */
+    function renderWorksheet() {
+      els.wsBody.innerHTML = '';
+
+      if (!state.text.trim()) {
+        els.wsBody.innerHTML = `
+          <div style="
+            flex:1;display:flex;align-items:center;justify-content:center;
+            color:#bbb;font-size:14px;text-align:center;
+            padding:40px;border:2px dashed #ddd;border-radius:8px;
+            margin-top:8px;line-height:2;
+          ">왼쪽 입력창에 연습할 문장을 입력해 주세요 ✏️</div>`;
+        return;
+      }
+
+      const lines = state.text.split('\n');
+      if (state.paper === 'kakduggi') {
+        renderKakduggi(lines);
+      } else {
+        renderLined(lines);
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       폰트 적용 (A4 용지 + 폰트 미리보기)
+    ═══════════════════════════════════════════════════════ */
+    function applyFont() {
+      const ff = state.fontFamily;
+      els.a4paper.style.fontFamily   = `'${ff}', 'Apple SD Gothic Neo', sans-serif`;
+      els.fontPreview.style.fontFamily = `'${ff}', sans-serif`;
+      els.fontPreview.style.fontWeight = state.fontWeight;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       원고지 힌트 표시 제어
+    ═══════════════════════════════════════════════════════ */
+    function updateMsHint() {
+      els.msHint.style.display = state.paper === 'kakduggi' ? 'block' : 'none';
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       이벤트 바인딩
+    ═══════════════════════════════════════════════════════ */
+
+    // 텍스트 입력
+    els.inputText.addEventListener('input', () => {
+      state.text = els.inputText.value;
+      els.charCount.textContent = [...els.inputText.value].length;
+      renderWorksheet();
+    });
+
+    // 폰트 선택
+    els.fontSelect.addEventListener('change', () => {
+      const [ff, fw] = els.fontSelect.value.split('|');
+      state.fontFamily = ff;
+      state.fontWeight = fw;
+      applyFont();
+      renderWorksheet();
+    });
+
+    // 용지 양식
+    document.querySelectorAll('[data-paper]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-paper]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.paper = btn.dataset.paper;
+        
+        // 줄공책일 때는 칸 수 슬라이더를 비활성화 (CSS 렌더링 방식이므로)
+        if (state.paper === 'lined') {
+          els.slCpr.disabled = true;
+          els.slCpr.parentElement.style.opacity = '0.5';
+        } else {
+          els.slCpr.disabled = false;
+          els.slCpr.parentElement.style.opacity = '1';
+        }
+
+        updateMsHint();
+        renderWorksheet();
+      });
+    });
+
+    // 글씨 스타일
+    document.querySelectorAll('[data-style]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-style]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.style = btn.dataset.style;
+        renderWorksheet();
+      });
+    });
+
+    // 번갈아 빈 줄 삽입
+    els.selAlt.addEventListener('change', () => {
+      state.alternateRows = parseInt(els.selAlt.value, 10);
+      renderWorksheet();
+    });
+
+    // 슬라이더 (자간/행간 제거 후 글자크기/한줄칸수 유지)
+    [
+      [els.slFs, els.valFs, 'fontSize'],
+      [els.slCpr, els.valCpr, 'cellsPerRow'],
+    ].forEach(([sl, vl, key]) => {
+      sl.addEventListener('input', () => {
+        const v = parseInt(sl.value, 10);
+        state[key] = v;
+        vl.textContent = v;
+        renderWorksheet();
+      });
+    });
+
+    // 맞춤법 검사 (부산대 API → CORS 실패 시 네이버 링크 대체)
+    els.btnSpell.addEventListener('click', async () => {
+      const text = state.text.trim();
+      if (!text) {
+        els.spellResult.style.display = 'block';
+        els.spellResult.textContent = '검사할 텍스트를 입력해 주세요.';
+        return;
+      }
+      els.btnSpell.disabled = true;
+      els.btnSpell.textContent = '⏳ 검사 중...';
+      els.spellResult.style.display = 'block';
+      els.spellResult.textContent = '검사 중...';
+      try {
+        const form = new FormData();
+        form.append('text1', text);
+        const res = await fetch('https://speller.cs.pusan.ac.kr/results', {
+          method: 'POST', body: form,
+          signal: AbortSignal.timeout(6000),
+        });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const errItems = doc.querySelectorAll('.errWord');
+        if (errItems.length === 0) {
+          els.spellResult.textContent = '✅ 맞춤법 오류가 발견되지 않았습니다.';
+        } else {
+          let out = '<b style="color:#ff6b6b">❌ 오류 발견</b><br>';
+          errItems.forEach(el => {
+            const err = el.textContent.trim();
+            const sug = el.nextElementSibling?.textContent?.trim() || '';
+            out += `오류: <span class="err">${err}</span>`;
+            if (sug) out += ` → <span class="cor">${sug}</span>`;
+            out += '<br>';
+          });
+          els.spellResult.innerHTML = out;
+        }
+      } catch (e) {
+        els.spellResult.innerHTML =
+          `<span style="color:#ffcc00">⚠️ 자동 검사 불가 (CORS 제한).</span><br>
+          <a href="https://search.naver.com/search.naver?query=${encodeURIComponent(text)}"
+             target="_blank" style="color:var(--clr-accent);text-decoration:underline">
+            네이버 맞춤법 검사기로 이동 →</a>`;
+      } finally {
+        els.btnSpell.disabled = false;
+        els.btnSpell.textContent = '🔍 검사 실행';
+      }
+    });
+
+    // 초기화
+    els.btnReset.addEventListener('click', () => {
+      if (!confirm('설정과 텍스트를 모두 초기화하겠습니까?')) return;
+
+      Object.assign(state, {
+        text: '', paper: 'kakduggi', style: 'dotted',
+        fontFamily: 'Noto Sans KR', fontWeight: '700',
+        fontSize: 48, cellsPerRow: 11, tracking: 2, leading: 8,
+        alternateRows: 0,
+      });
+
+      els.inputText.value = '';
+      els.charCount.textContent = '0';
+      els.spellResult.style.display = 'none';
+      els.fontSelect.value = 'Noto Sans KR|700';
+      els.slFs.value = 48; els.valFs.textContent = '48';
+      els.slCpr.value = state.cellsPerRow;
+      els.slCpr.disabled = false;
+      els.slCpr.parentElement.style.opacity = '1';
+      els.valCpr.textContent = state.cellsPerRow;
+      document.querySelectorAll('[data-paper]').forEach(b => b.classList.remove('active'));
+      $('paper-kakduggi').classList.add('active');
+      document.querySelectorAll('[data-style]').forEach(b => b.classList.remove('active'));
+      $('style-dotted').classList.add('active');
+
+      [
+        ['ws-school', '배곧라온초등학교'],
+        ['ws-grade',  '3'],
+        ['ws-class',  '___'],
+        ['ws-name',   '_______'],
+        ['ws-topic',  '_______'],
+      ].forEach(([id, val]) => { $(id).textContent = val; });
+
+      applyFont();
+      updateMsHint();
+      renderWorksheet();
+    });
+
+    /* ═══════════════════════════════════════════════════════
+       초기 실행
+    ═══════════════════════════════════════════════════════ */
+    applyFont();
+    updateMsHint();
+    renderWorksheet();
+
+  </script>
+</body>
+</html>
