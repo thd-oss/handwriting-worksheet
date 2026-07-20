@@ -706,10 +706,32 @@
       <!-- 6. 맞춤법 검사 -->
       <section class="ctrl-section">
         <h2 class="ctrl-title">맞춤법 검사</h2>
-        <button class="spell-check-btn" id="btn-spell" aria-label="맞춤법 검사 실행">
-          🔍 검사 실행
+        <p style="font-size:.72rem; color:var(--clr-text-sec); line-height:1.6; margin-bottom:2px;">
+          아래 버튼을 누르면 텍스트가 <b style="color:var(--clr-text-pri)">자동으로 복사</b>됩니다.<br>
+          이후 원하는 검사기를 선택하여 붙여넣기(Ctrl+V)로 검사하세요.
+        </p>
+        <button class="spell-check-btn" id="btn-spell" aria-label="텍스트 복사하기">
+          📋 텍스트 복사
         </button>
-        <div class="spell-result" id="spell-result" style="display:none" aria-live="polite"></div>
+        <div id="spell-result" style="display:none; margin-top:6px;" aria-live="polite">
+          <p style="font-size:.72rem; color:#16a34a; font-weight:600; margin-bottom:6px;">✅ 클립보드에 복사되었습니다!</p>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <a id="link-pusan" href="https://speller.cs.pusan.ac.kr" target="_blank" rel="noopener noreferrer"
+               style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:#f0f2f5;border:1px solid var(--clr-border);border-radius:6px;font-size:.75rem;font-weight:600;color:var(--clr-text-pri);text-decoration:none;">
+              <span>🔵</span> 부산대 맞춤법 검사기
+              <span style="margin-left:auto;font-size:.68rem;color:var(--clr-text-muted);">추천 →</span>
+            </a>
+            <a id="link-naver" href="https://search.naver.com/search.naver?where=nexearch&query=맞춤법검사기" target="_blank" rel="noopener noreferrer"
+               style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:#f0f2f5;border:1px solid var(--clr-border);border-radius:6px;font-size:.75rem;font-weight:600;color:var(--clr-text-pri);text-decoration:none;">
+              <span>🟢</span> 네이버 맞춤법 검사기
+              <span style="margin-left:auto;font-size:.68rem;color:var(--clr-text-muted);">→</span>
+            </a>
+          </div>
+          <p style="font-size:.67rem;color:var(--clr-text-muted);margin-top:6px;line-height:1.5;">
+            * 링크를 누른 후 검사창에 Ctrl+V 로 붙여넣기 하세요.
+          </p>
+        </div>
+        <div id="spell-error" style="display:none; font-size:.72rem; color:#dc2626; margin-top:4px;"></div>
       </section>
 
       <div class="print-hint" role="note">
@@ -1508,50 +1530,36 @@
       });
     });
 
-    // 맞춤법 검사 (부산대 API → CORS 실패 시 네이버 링크 대체)
+    // 맞춤법 검사 - 텍스트 클립보드 복사 후 외부 검사기 링크 제공
     els.btnSpell.addEventListener('click', async () => {
       const text = state.text.trim();
+      const errEl = $('spell-error');
+      errEl.style.display = 'none';
+
       if (!text) {
-        els.spellResult.style.display = 'block';
-        els.spellResult.textContent = '검사할 텍스트를 입력해 주세요.';
+        errEl.style.display = 'block';
+        errEl.textContent = '검사할 텍스트를 먼저 입력해 주세요.';
         return;
       }
-      els.btnSpell.disabled = true;
-      els.btnSpell.textContent = '⏳ 검사 중...';
-      els.spellResult.style.display = 'block';
-      els.spellResult.textContent = '검사 중...';
+
       try {
-        const form = new FormData();
-        form.append('text1', text);
-        const res = await fetch('https://speller.cs.pusan.ac.kr/results', {
-          method: 'POST', body: form,
-          signal: AbortSignal.timeout(6000),
-        });
-        const html = await res.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const errItems = doc.querySelectorAll('.errWord');
-        if (errItems.length === 0) {
-          els.spellResult.textContent = '✅ 맞춤법 오류가 발견되지 않았습니다.';
-        } else {
-          let out = '<b style="color:#ff6b6b">❌ 오류 발견</b><br>';
-          errItems.forEach(el => {
-            const err = el.textContent.trim();
-            const sug = el.nextElementSibling?.textContent?.trim() || '';
-            out += `오류: <span class="err">${err}</span>`;
-            if (sug) out += ` → <span class="cor">${sug}</span>`;
-            out += '<br>';
-          });
-          els.spellResult.innerHTML = out;
-        }
+        await navigator.clipboard.writeText(text);
+        $('spell-result').style.display = 'block';
       } catch (e) {
-        els.spellResult.innerHTML =
-          `<span style="color:#ffcc00">⚠️ 자동 검사 불가 (CORS 제한).</span><br>
-          <a href="https://search.naver.com/search.naver?query=${encodeURIComponent(text)}"
-             target="_blank" style="color:var(--clr-accent);text-decoration:underline">
-            네이버 맞춤법 검사기로 이동 →</a>`;
-      } finally {
-        els.btnSpell.disabled = false;
-        els.btnSpell.textContent = '🔍 검사 실행';
+        // 클립보드 API 실패 시 execCommand 폴백
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          $('spell-result').style.display = 'block';
+        } else {
+          errEl.style.display = 'block';
+          errEl.textContent = '⚠️ 복사에 실패했습니다. 텍스트를 수동으로 복사해 주세요.';
+        }
       }
     });
 
@@ -1568,7 +1576,8 @@
 
       els.inputText.value = '';
       els.charCount.textContent = '0';
-      els.spellResult.style.display = 'none';
+      $('spell-result').style.display = 'none';
+      $('spell-error').style.display = 'none';
       els.fontSelect.value = 'Noto Sans KR|700';
       els.slFs.value = 48; els.valFs.textContent = '48';
       els.slCpr.value = state.cellsPerRow;
