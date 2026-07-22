@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>바른 글씨 쓰기 학습지 만들기</title>
   <meta name="description" content="초등학생을 위한 바른 글씨 쓰기 학습지를 손쉽게 만들고 인쇄할 수 있는 웹앱입니다." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
 
   <!--
     ╔══════════════════════════════════════════════════════════════╗
@@ -606,12 +608,37 @@
         page-break-after: always;
       }
       .page-gap { display: none !important; }
+      .pwa-toast { display: none !important; }
       @page { size: A4 portrait; margin: 0; }
       [contenteditable]:focus {
         border-bottom-color: transparent !important;
         background: transparent !important;
       }
     }
+
+    /* ═══════════════════════════════════════
+       PWA 자동 업데이트 토스트 알림
+    ═══════════════════════════════════════ */
+    .pwa-toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      background: #1e293b; color: #ffffff;
+      padding: 12px 18px; border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.85rem; font-weight: 500;
+      animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastSlideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .pwa-toast-btn {
+      background: #2563eb; color: #fff; border: none;
+      padding: 6px 12px; border-radius: 6px;
+      font-weight: 600; font-size: 0.78rem; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pwa-toast-btn:hover { background: #1d4ed8; }
   </style>
 </head>
 
@@ -1845,6 +1872,62 @@
     updateMsHint();
     renderWorksheet();
 
+    /* ═══════════════════════════════════════════════════════
+       PWA Service Worker 등록 및 자동 업데이트 알림
+    ═══════════════════════════════════════════════════════ */
+    if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+      let refreshing = false;
+
+      // 컨트롤러 변경 시 자동 새로고침 적용
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          // 1. 이미 대기 중인 새 서비스 워커가 있는 경우
+          if (reg.waiting) {
+            showUpdateToast(reg.waiting);
+            return;
+          }
+
+          // 2. 새 버전 업데이트 발견 시
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateToast(newWorker);
+              }
+            });
+          });
+        }).catch((err) => {
+          console.warn('Service Worker registration failed:', err);
+        });
+      });
+    }
+
+    function showUpdateToast(worker) {
+      if (document.getElementById('pwa-update-toast')) return;
+
+      const toast = document.createElement('div');
+      toast.id = 'pwa-update-toast';
+      toast.className = 'pwa-toast';
+      toast.innerHTML = `
+        <span>🔄 새로운 버전이 준비되었습니다.</span>
+        <button class="pwa-toast-btn" id="pwa-refresh-btn">새로고침 적용</button>
+      `;
+
+      document.body.appendChild(toast);
+
+      document.getElementById('pwa-refresh-btn').addEventListener('click', () => {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      });
+    }
   </script>
 </body>
 </html>
