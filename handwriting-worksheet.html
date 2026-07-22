@@ -328,11 +328,23 @@
     ═══════════════════════════════════════ */
     .preview-panel {
       background: #e2e6ed; overflow: auto;
-      display: flex; align-items: flex-start; justify-content: center;
+      display: flex; flex-direction: column; align-items: center;
       padding: 28px 20px;
+      gap: 0;
     }
     .preview-panel::-webkit-scrollbar { width: 6px; height: 6px; }
     .preview-panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); border-radius: 3px; }
+
+    /* 페이지 간 간격 (미리보기 전용) */
+    .page-gap {
+      width: 794px;
+      height: 24px;
+      background: #c8cdd6;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #888; letter-spacing: 0.5px;
+    }
+    .page-gap::after { content: '▼ 다음 페이지'; }
 
     /* A4 용지: 화면 표시용 794px (96dpi × 210mm) */
     .a4-paper {
@@ -438,15 +450,15 @@
       border-right: 1px solid #999;
       border-bottom: 1px solid #999;
     }
-    /* 가로 중심선 */
-    .paper-kakduggi .char-cell::before {
+    /* 가로 중심선 (십자선 옵션 ON 시만 표시) */
+    .paper-kakduggi.show-crosshair .char-cell::before {
       content: '';
       position: absolute; left: 0; right: 0;
       top: calc(50% - 0.5px); height: 1px;
       background: #d5d5d5; z-index: 1;
     }
-    /* 세로 중심선 */
-    .paper-kakduggi .char-cell::after {
+    /* 세로 중심선 (십자선 옵션 ON 시만 표시) */
+    .paper-kakduggi.show-crosshair .char-cell::after {
       content: '';
       position: absolute; top: 0; bottom: 0;
       left: calc(50% - 0.5px); width: 1px;
@@ -464,13 +476,13 @@
       border-right: 1px solid #c0c0c0;
       border-bottom: 1px solid #c0c0c0;
     }
-    .empty-cell-kak::before {
+    .show-crosshair .empty-cell-kak::before {
       content: '';
       position: absolute; left: 0; right: 0;
       top: calc(50% - 0.5px); height: 1px;
       background: #e5e5e5;
     }
-    .empty-cell-kak::after {
+    .show-crosshair .empty-cell-kak::after {
       content: '';
       position: absolute; top: 0; bottom: 0;
       left: calc(50% - 0.5px); width: 1px;
@@ -578,6 +590,7 @@
         border-radius: 0 !important;
         page-break-after: always;
       }
+      .page-gap { display: none !important; }
       @page { size: A4 portrait; margin: 0; }
       [contenteditable]:focus {
         border-bottom-color: transparent !important;
@@ -667,6 +680,18 @@
           </button>
         </div>
 
+        <!-- 십자선 표시 -->
+        <div class="toggle-row">
+          <label class="toggle-label-text" for="chk-cross">
+            칸 내 십자선
+            <small>셀 중앙에 보조 십자선 표시</small>
+          </label>
+          <label class="toggle-sw">
+            <input type="checkbox" id="chk-cross" checked />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
         <!-- 번갈아 빈 줄 삽입 -->
         <div class="toggle-row">
           <label class="toggle-label-text" for="sel-alt">
@@ -743,7 +768,7 @@
     </aside>
 
     <!-- ── 미리보기부 ── -->
-    <section class="preview-panel" aria-label="학습지 미리보기">
+    <section class="preview-panel" id="preview-panel" aria-label="학습지 미리보기">
       <div class="a4-paper" id="a4-paper">
 
         <!-- 상단 헤더 (contenteditable) -->
@@ -775,6 +800,16 @@
 
     /** A4 용지 콘텐츠 폭 (px): 794px - 양쪽 15mm 패딩(≈57px × 2) = 680px */
     const CONTENT_WIDTH = 680;
+    /** A4 화면 높이 (px, 96dpi) */
+    const PAGE_A4_PX = 1123;
+    /** 상하 패딩 합 (18mm + 14mm) */
+    const PAGE_V_PAD = 121;
+    /** ws-header 영역 높이 (헤더 힌트 + ws-header + margin) */
+    const PAGE_HEADER_H = 72;
+    /** 첫 페이지 본문 가용 높이 */
+    const PAGE_BODY_H_FIRST = PAGE_A4_PX - PAGE_V_PAD - PAGE_HEADER_H; // 930px
+    /** 이후 페이지 본문 가용 높이 */
+    const PAGE_BODY_H_REST = PAGE_A4_PX - PAGE_V_PAD; // 1002px
 
     /* ═══════════════════════════════════════════════════════
        상태(State)
@@ -790,6 +825,7 @@
       tracking:      2,   // 고정값 (UI 제거)
       leading:       8,   // 고정값 (UI 제거)
       alternateRows: 0,
+      crosshair:     true, // 십자선 기본값 ON
     };
 
     /* ═══════════════════════════════════════════════════════
@@ -807,6 +843,7 @@
       slFs: $('sl-fs'), valFs: $('val-fs'),
       slCpr: $('sl-cpr'), valCpr: $('val-cpr'),
       selAlt:     $('sel-alt'),
+      chkCross:   $('chk-cross'),
       btnReset:   $('btn-reset'),
       btnSpell:   $('btn-spell'),
       spellResult:$('spell-result'),
@@ -1317,99 +1354,118 @@
       return row;
     }
 
+
     /* ═══════════════════════════════════════════════════════
-       렌더링 — 깍두기 공책 (원고지 작성법 + 자동 줄바꿈)
+       깍두기 행 그룹 빌더
+       - 본문 행 + 번갈아 빈 행을 "그룹" 단위 배열로 반환
+       - hasLeadingGap: 첫 요소가 leading gap인지 여부
     ═══════════════════════════════════════════════════════ */
-    function renderKakduggi(lines) {
+    function buildKakduggiGroups(lines) {
       const { style, fontFamily, fontWeight, fontSize, cellsPerRow, tracking, leading, alternateRows } = state;
       const sc = 'style-' + style;
       const cellSize = calcCellSize();
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'paper-kakduggi';
-
-      let isFirst = true;
+      const groups = [];
 
       lines.forEach(line => {
-        // 단락 토큰화 -> 금칙 처리 전용 청커 사용
         const tokens = tokenizeManuscript(line);
         const chunks = chunkManuscript(tokens, cellsPerRow);
 
         chunks.forEach(chunk => {
-          if (!isFirst) appendGap(wrapper, leading);
-          // cellsPerRow를 buildKakRow에 전달하여 빈 행도 full-width 격자 유지
-          wrapper.appendChild(buildKakRow(chunk, cellSize, fontSize, tracking, sc, fontFamily, fontWeight, cellsPerRow));
-          for (let i = 0; i < alternateRows; i++) {
-            appendGap(wrapper, leading);
-            wrapper.appendChild(createEmptyRow('kakduggi', cellSize, tracking, cellsPerRow));
+          const elems = [];
+          let h = 0;
+
+          // 앞 행간 gap
+          if (leading > 0) {
+            const gap = document.createElement('div');
+            gap.style.height = leading + 'px';
+            elems.push(gap);
+            h += leading;
           }
-          isFirst = false;
+
+          // 본문 행
+          const row = buildKakRow(chunk, cellSize, fontSize, tracking, sc, fontFamily, fontWeight, cellsPerRow);
+          elems.push(row);
+          h += cellSize;
+
+          // 번갈아 빈 행
+          for (let i = 0; i < alternateRows; i++) {
+            if (leading > 0) {
+              const g = document.createElement('div');
+              g.style.height = leading + 'px';
+              elems.push(g);
+              h += leading;
+            }
+            const emptyRow = createEmptyRow('kakduggi', cellSize, tracking, cellsPerRow);
+            elems.push(emptyRow);
+            h += cellSize;
+          }
+
+          groups.push({ elems, totalH: h, hasLeadingGap: leading > 0 });
         });
       });
 
-      els.wsBody.appendChild(wrapper);
+      return groups;
     }
 
     /* ═══════════════════════════════════════════════════════
-       렌더링 — 줄공책 (자동 줄바꿈)
-
-       핵심 변경:
-         characters 배열을 cellsPerRow 단위로 청킹하여
-         각 청크를 독립적인 line-row로 렌더링.
-         줄공책의 bottom-line은 full-width로 그리기 위해
-         line-row에 width:100%를 적용함.
+       줄공책 행 그룹 빌더
     ═══════════════════════════════════════════════════════ */
-    /* ═══════════════════════════════════════════════════════
-       렌더링 — 줄공책 (Structural DOM 기반)
-    ═══════════════════════════════════════════════════════ */
-    function renderLined(lines) {
+    function buildLinedGroups(lines) {
       const { style, fontFamily, fontWeight, fontSize, alternateRows, leading } = state;
       const sc = 'style-' + style;
-      
-      const wrapper = document.createElement('div');
-      wrapper.className = 'paper-lined';
-
-      // 줄 높이는 글자 크기의 1.6배로 설정
       const lh = Math.round(fontSize * 1.6);
-      
-      // Canvas API를 활용해 CONTENT_WIDTH 에 맞춰 텍스트를 줄 단위로 분할
-      const chunks = measureAndChunkLined(lines, CONTENT_WIDTH, fontSize, fontFamily, fontWeight);
 
-      let isFirst = true;
+      const chunks = measureAndChunkLined(lines, CONTENT_WIDTH, fontSize, fontFamily, fontWeight);
+      const groups = [];
 
       chunks.forEach(chunk => {
-        if (!isFirst) appendGap(wrapper, leading);
+        const elems = [];
+        let h = 0;
 
+        // 앞 행간 gap
+        if (leading > 0) {
+          const gap = document.createElement('div');
+          gap.style.height = leading + 'px';
+          elems.push(gap);
+          h += leading;
+        }
+
+        // 본문 행
         const row = document.createElement('div');
         row.className = 'line-row';
         row.style.minHeight = lh + 'px';
-
-        // 빈 줄이라도 최소 한 줄의 렌더링이 필요하므로 공백 문자를 하나 넣어 형태 유지
         const textContent = chunk.length > 0 ? chunk : ' ';
-
         const span = document.createElement('span');
         span.className = 'lined-text ' + sc;
         span.style.fontSize = fontSize + 'px';
         span.style.fontFamily = fontFamily;
         span.style.fontWeight = fontWeight;
         span.textContent = textContent;
-        
         row.appendChild(span);
-        wrapper.appendChild(row);
+        elems.push(row);
+        h += lh;
 
+        // 번갈아 빈 행
         for (let i = 0; i < alternateRows; i++) {
-          appendGap(wrapper, leading);
-          const emptyRow = createEmptyRow('lined', lh, 0, 0); // tracking/cellsPerRow 안 씀
-          wrapper.appendChild(emptyRow);
+          if (leading > 0) {
+            const g = document.createElement('div');
+            g.style.height = leading + 'px';
+            elems.push(g);
+            h += leading;
+          }
+          const emptyRow = createEmptyRow('lined', lh, 0, 0);
+          elems.push(emptyRow);
+          h += lh;
         }
-        isFirst = false;
+
+        groups.push({ elems, totalH: h, hasLeadingGap: leading > 0 });
       });
 
-      els.wsBody.appendChild(wrapper);
+      return groups;
     }
 
     /* ═══════════════════════════════════════════════════════
-       유틸: 행간 여백 div 삽입
+       유틸: 행간 여백 div 삽입 (하위 호환용)
     ═══════════════════════════════════════════════════════ */
     function appendGap(parent, leading) {
       if (leading <= 0) return;
@@ -1419,9 +1475,17 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       메인 렌더링
+       메인 렌더링 (A4 페이지 분리 지원)
+       - 그룹 단위로 높이를 누적하여 페이지 한계 초과 시
+         새 .a4-paper 를 생성, 미리보기에 추가
     ═══════════════════════════════════════════════════════ */
     function renderWorksheet() {
+      const previewPanel = $('preview-panel');
+
+      // 추가 생성된 페이지·gap 제거 (첫 페이지 #a4-paper 유지)
+      previewPanel.querySelectorAll('.a4-paper:not(#a4-paper), .page-gap').forEach(el => el.remove());
+
+      // 첫 페이지 본문 초기화
       els.wsBody.innerHTML = '';
 
       if (!state.text.trim()) {
@@ -1436,21 +1500,92 @@
       }
 
       const lines = state.text.split('\n');
-      if (state.paper === 'kakduggi') {
-        renderKakduggi(lines);
-      } else {
-        renderLined(lines);
-      }
+      const groups = state.paper === 'kakduggi'
+        ? buildKakduggiGroups(lines)
+        : buildLinedGroups(lines);
+
+      // ── 페이지 배분 ──────────────────────────────────────
+      const pages = [];
+      let currentPage = [];
+      let currentH = 0;
+
+      groups.forEach(group => {
+        const isFirstOnPage = currentPage.length === 0;
+        // 페이지 첫 그룹의 앞 gap은 높이에서 제외
+        const effectiveH = (isFirstOnPage && group.hasLeadingGap)
+          ? group.totalH - state.leading
+          : group.totalH;
+        const pageLimit = pages.length === 0 ? PAGE_BODY_H_FIRST : PAGE_BODY_H_REST;
+
+        if (!isFirstOnPage && currentH + effectiveH > pageLimit) {
+          // 현재 페이지 확정, 새 페이지 시작
+          pages.push(currentPage);
+          currentPage = [group];
+          currentH = group.hasLeadingGap ? group.totalH - state.leading : group.totalH;
+        } else {
+          currentPage.push(group);
+          currentH += effectiveH;
+        }
+      });
+
+      if (currentPage.length > 0) pages.push(currentPage);
+
+      // ── 래퍼 클래스 ──────────────────────────────────────
+      const wrapperClass = state.paper === 'kakduggi'
+        ? 'paper-kakduggi' + (state.crosshair ? ' show-crosshair' : '')
+        : 'paper-lined';
+
+      // ── 그룹 → DOM ───────────────────────────────────────
+      const renderPageGroups = (pageGroups, bodyEl) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = wrapperClass;
+
+        pageGroups.forEach((group, gi) => {
+          // 각 페이지 첫 번째 그룹의 앞 gap 제거
+          const startIdx = (gi === 0 && group.hasLeadingGap) ? 1 : 0;
+          for (let ei = startIdx; ei < group.elems.length; ei++) {
+            wrapper.appendChild(group.elems[ei]);
+          }
+        });
+
+        bodyEl.appendChild(wrapper);
+      };
+
+      // ── 페이지별 DOM 생성 ─────────────────────────────────
+      pages.forEach((pageGroups, pi) => {
+        if (pi === 0) {
+          // 첫 페이지: 기존 ws-body 사용
+          renderPageGroups(pageGroups, els.wsBody);
+        } else {
+          // 추가 페이지: 새 a4-paper 생성
+          const gap = document.createElement('div');
+          gap.className = 'page-gap';
+          previewPanel.appendChild(gap);
+
+          const paper = document.createElement('div');
+          paper.className = 'a4-paper';
+          paper.style.fontFamily = els.a4paper.style.fontFamily;
+
+          const body = document.createElement('div');
+          body.className = 'ws-body';
+          paper.appendChild(body);
+
+          renderPageGroups(pageGroups, body);
+          previewPanel.appendChild(paper);
+        }
+      });
     }
 
     /* ═══════════════════════════════════════════════════════
-       폰트 적용 (A4 용지 + 폰트 미리보기)
+       폰트 적용 (모든 A4 페이지 + 폰트 미리보기)
     ═══════════════════════════════════════════════════════ */
     function applyFont() {
       const ff = state.fontFamily;
-      els.a4paper.style.fontFamily   = `'${ff}', 'Apple SD Gothic Neo', sans-serif`;
+      const fontValue = `'${ff}', 'Apple SD Gothic Neo', sans-serif`;
+      document.querySelectorAll('.a4-paper').forEach(p => p.style.fontFamily = fontValue);
       els.fontPreview.style.fontFamily = `'${ff}', sans-serif`;
       els.fontPreview.style.fontWeight = state.fontWeight;
+
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -1517,6 +1652,12 @@
       renderWorksheet();
     });
 
+    // 칸 내 십자선
+    els.chkCross.addEventListener('change', () => {
+      state.crosshair = els.chkCross.checked;
+      renderWorksheet();
+    });
+
     // 슬라이더 (자간/행간 제거 후 글자크기/한줄칸수 유지)
     [
       [els.slFs, els.valFs, 'fontSize'],
@@ -1571,13 +1712,15 @@
         text: '', paper: 'kakduggi', style: 'dotted',
         fontFamily: 'Noto Sans KR', fontWeight: '700',
         fontSize: 48, cellsPerRow: 11, tracking: 2, leading: 8,
-        alternateRows: 0,
+        alternateRows: 0, crosshair: true,
       });
 
       els.inputText.value = '';
       els.charCount.textContent = '0';
       $('spell-result').style.display = 'none';
       $('spell-error').style.display = 'none';
+      els.chkCross.checked = true;
+      els.selAlt.value = 0;
       els.fontSelect.value = 'Noto Sans KR|700';
       els.slFs.value = 48; els.valFs.textContent = '48';
       els.slCpr.value = state.cellsPerRow;
