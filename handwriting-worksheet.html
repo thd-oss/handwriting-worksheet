@@ -873,6 +873,9 @@
        상수
     ═══════════════════════════════════════════════════════ */
 
+    /** 현재 프로그램 버전 */
+    const CURRENT_VERSION = 'v1.1.0';
+
     /** A4 용지 콘텐츠 폭 (px): 794px - 양쪽 15mm 패딩(≈57px × 2) = 680px */
     const CONTENT_WIDTH = 680;
     /** A4 화면 높이 (px, 96dpi) */
@@ -1928,6 +1931,42 @@
         worker.postMessage({ type: 'SKIP_WAITING' });
       });
     }
+
+    /* ═══════════════════════════════════════════════════════
+       단일 HTML 다운로드 파일 실행 시 GitHub 최신 릴리즈 자동 체크
+    ═══════════════════════════════════════════════════════ */
+    function checkGitHubReleaseUpdate() {
+      // 3초 후 백그라운드 체크 (초기 실행 방해 금지)
+      setTimeout(() => {
+        fetch('https://api.github.com/repos/thd-oss/handwriting-worksheet/releases/latest')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.tag_name && data.tag_name !== CURRENT_VERSION) {
+              showDownloadNoticeToast(data.tag_name, data.html_url);
+            }
+          })
+          .catch(() => {
+            // 네트워크 미연결 또는 API 제한 시 무시
+          });
+      }, 3000);
+    }
+
+    function showDownloadNoticeToast(newVer, downloadUrl) {
+      if (document.getElementById('pwa-update-toast')) return;
+
+      const toast = document.createElement('div');
+      toast.id = 'pwa-update-toast';
+      toast.className = 'pwa-toast';
+      toast.innerHTML = `
+        <span>🎉 새로운 버전(${newVer})이 출시되었습니다!</span>
+        <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="pwa-toast-btn" style="text-decoration:none;">새 버전 다운로드 →</a>
+      `;
+
+      document.body.appendChild(toast);
+    }
+
+    // 단일 파일 버전 체크 자동 실행
+    checkGitHubReleaseUpdate();
   </script>
 </body>
 </html>
