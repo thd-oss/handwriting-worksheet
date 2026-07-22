@@ -169,6 +169,21 @@
     #input-text:focus { border-color: var(--clr-accent); box-shadow: 0 0 0 3px var(--clr-accent-glow); }
     #input-text::placeholder { color: var(--clr-text-muted); }
 
+    /* input text */
+    .ctrl-input {
+      width: 100%;
+      background: #f8f9fb; border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      color: var(--clr-text-pri);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: .8rem;
+      padding: 6px 9px; outline: none;
+      transition: var(--tr);
+      box-sizing: border-box;
+    }
+    .ctrl-input:focus { border-color: var(--clr-accent); box-shadow: 0 0 0 3px var(--clr-accent-glow); background: #ffffff; }
+    .ctrl-input::placeholder { color: var(--clr-text-muted); }
+
     /* select */
     .ctrl-select {
       width: 100%;
@@ -621,7 +636,36 @@
     <!-- ── 제어부 ── -->
     <aside class="controls-panel" aria-label="학습지 설정">
 
-      <!-- 1. 텍스트 입력 -->
+      <!-- 1. 기본 정보 -->
+      <section class="ctrl-section">
+        <h2 class="ctrl-title">기본 정보</h2>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <label style="font-size:.72rem; color:var(--clr-text-sec); display:block; margin-bottom:3px; font-weight:600;" for="header-school">학교명</label>
+            <input type="text" id="header-school" class="ctrl-input" value="○○초등학교" placeholder="예: ○○초등학교" />
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label style="font-size:.72rem; color:var(--clr-text-sec); display:block; margin-bottom:3px; font-weight:600;" for="header-grade">학년</label>
+              <input type="text" id="header-grade" class="ctrl-input" value="3" placeholder="3" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:.72rem; color:var(--clr-text-sec); display:block; margin-bottom:3px; font-weight:600;" for="header-class">반</label>
+              <input type="text" id="header-class" class="ctrl-input" value="" placeholder="예: 1" />
+            </div>
+            <div style="flex:1.5;">
+              <label style="font-size:.72rem; color:var(--clr-text-sec); display:block; margin-bottom:3px; font-weight:600;" for="header-name">이름</label>
+              <input type="text" id="header-name" class="ctrl-input" value="" placeholder="홍길동" />
+            </div>
+          </div>
+          <div>
+            <label style="font-size:.72rem; color:var(--clr-text-sec); display:block; margin-bottom:3px; font-weight:600;" for="header-topic">단원 / 주제</label>
+            <input type="text" id="header-topic" class="ctrl-input" value="" placeholder="예: 1. 바른 글씨" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 텍스트 입력 -->
       <section class="ctrl-section">
         <h2 class="ctrl-title">텍스트 입력</h2>
         <textarea id="input-text"
@@ -771,17 +815,16 @@
     <section class="preview-panel" id="preview-panel" aria-label="학습지 미리보기">
       <div class="a4-paper" id="a4-paper">
 
-        <!-- 상단 헤더 (contenteditable) -->
-        <p class="ws-header-hint">✏️ 아래 항목을 직접 클릭하여 수정할 수 있습니다</p>
+        <!-- 상단 헤더 -->
         <header class="ws-header">
           <div class="ws-title">
-            <span contenteditable="true" id="ws-school" title="클릭하여 학교명 수정">배곧라온초등학교</span>&nbsp;
-            <span contenteditable="true" id="ws-grade" title="클릭하여 학년 수정">3</span>학년&nbsp;
-            <span contenteditable="true" id="ws-class" title="클릭하여 반 수정">___</span>반&nbsp;
-            이름:&nbsp;<span contenteditable="true" id="ws-name" title="클릭하여 이름칸 수정">_______</span>
+            <span id="ws-school">○○초등학교</span>&nbsp;
+            <span id="ws-grade">3</span>학년&nbsp;
+            <span id="ws-class">___</span>반&nbsp;
+            이름:&nbsp;<span id="ws-name">_______</span>
           </div>
           <div class="ws-sub">
-            단원/주제:&nbsp;<span contenteditable="true" id="ws-topic" title="클릭하여 단원명/주제 수정">_______</span>
+            단원/주제:&nbsp;<span id="ws-topic">_______</span>
           </div>
         </header>
 
@@ -815,6 +858,13 @@
        상태(State)
     ═══════════════════════════════════════════════════════ */
     const state = {
+      header: {
+        school:   '○○초등학교',
+        grade:    '3',
+        classNum: '',
+        name:     '',
+        topic:    '',
+      },
       text:          '',
       paper:         'kakduggi',
       style:         'dotted',
@@ -833,6 +883,11 @@
     ═══════════════════════════════════════════════════════ */
     const $ = id => document.getElementById(id);
     const els = {
+      inSchool:   $('header-school'),
+      inGrade:    $('header-grade'),
+      inClass:    $('header-class'),
+      inName:     $('header-name'),
+      inTopic:    $('header-topic'),
       inputText:  $('input-text'),
       charCount:  $('char-count'),
       wsBody:     $('ws-body'),
@@ -1596,8 +1651,34 @@
     }
 
     /* ═══════════════════════════════════════════════════════
+       헤더 UI 단방향 업데이트
+    ═══════════════════════════════════════════════════════ */
+    function updateHeaderUI() {
+      const h = state.header;
+      $('ws-school').textContent = h.school.trim() || '○○초등학교';
+      $('ws-grade').textContent  = h.grade.trim()  || '___';
+      $('ws-class').textContent  = h.classNum.trim() ? h.classNum.trim() : '___';
+      $('ws-name').textContent   = h.name.trim()     ? h.name.trim()     : '_______';
+      $('ws-topic').textContent  = h.topic.trim()    ? h.topic.trim()    : '_______';
+    }
+
+    /* ═══════════════════════════════════════════════════════
        이벤트 바인딩
     ═══════════════════════════════════════════════════════ */
+
+    // 헤더 입력 바인딩
+    [
+      [els.inSchool, 'school'],
+      [els.inGrade,  'grade'],
+      [els.inClass,  'classNum'],
+      [els.inName,   'name'],
+      [els.inTopic,  'topic'],
+    ].forEach(([inputEl, key]) => {
+      inputEl.addEventListener('input', () => {
+        state.header[key] = inputEl.value;
+        updateHeaderUI();
+      });
+    });
 
     // 텍스트 입력
     els.inputText.addEventListener('input', () => {
@@ -1709,11 +1790,24 @@
       if (!confirm('설정과 텍스트를 모두 초기화하겠습니까?')) return;
 
       Object.assign(state, {
+        header: {
+          school:   '○○초등학교',
+          grade:    '3',
+          classNum: '',
+          name:     '',
+          topic:    '',
+        },
         text: '', paper: 'kakduggi', style: 'dotted',
         fontFamily: 'Noto Sans KR', fontWeight: '700',
         fontSize: 48, cellsPerRow: 11, tracking: 2, leading: 8,
         alternateRows: 0, crosshair: true,
       });
+
+      els.inSchool.value = '○○초등학교';
+      els.inGrade.value  = '3';
+      els.inClass.value  = '';
+      els.inName.value   = '';
+      els.inTopic.value  = '';
 
       els.inputText.value = '';
       els.charCount.textContent = '0';
@@ -1732,14 +1826,7 @@
       document.querySelectorAll('[data-style]').forEach(b => b.classList.remove('active'));
       $('style-dotted').classList.add('active');
 
-      [
-        ['ws-school', '배곧라온초등학교'],
-        ['ws-grade',  '3'],
-        ['ws-class',  '___'],
-        ['ws-name',   '_______'],
-        ['ws-topic',  '_______'],
-      ].forEach(([id, val]) => { $(id).textContent = val; });
-
+      updateHeaderUI();
       applyFont();
       updateMsHint();
       renderWorksheet();
@@ -1748,6 +1835,7 @@
     /* ═══════════════════════════════════════════════════════
        초기 실행
     ═══════════════════════════════════════════════════════ */
+    updateHeaderUI();
     applyFont();
     updateMsHint();
     renderWorksheet();
