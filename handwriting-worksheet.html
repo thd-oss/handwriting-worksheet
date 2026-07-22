@@ -880,7 +880,7 @@
     ═══════════════════════════════════════════════════════ */
 
     /** 현재 프로그램 버전 */
-    const CURRENT_VERSION = 'v1.4.0';
+    const CURRENT_VERSION = 'v1.5.0';
 
     /** A4 용지 콘텐츠 폭 (px): 794px - 양쪽 15mm 패딩(≈57px × 2) = 680px */
     const CONTENT_WIDTH = 680;
@@ -1983,15 +1983,54 @@
 
       document.body.appendChild(toast);
 
-      document.getElementById('btn-direct-download').addEventListener('click', () => {
-        // 깃허브 웹페이지 이동 없이 바로 파일 다운로드 시작
-        const a = document.createElement('a');
-        a.href = directDownloadUrl;
-        a.download = 'handwriting-worksheet.html';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      document.getElementById('btn-direct-download').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-direct-download');
+        const originalText = btn.innerText;
+        btn.innerText = '업데이트 준비 중... ⏳';
+        btn.disabled = true;
+
+        try {
+          if (window.showSaveFilePicker) {
+            // 1. 메모리로 파일 내용 fetch
+            const response = await fetch(directDownloadUrl);
+            if (!response.ok) throw new Error('Failed to fetch new version');
+            const blob = await response.blob();
+
+            // 2. 덮어쓰기 유도 다이얼로그 호출
+            const handle = await window.showSaveFilePicker({
+              suggestedName: 'handwriting-worksheet.html',
+              types: [{
+                description: 'HTML File',
+                accept: {'text/html': ['.html']},
+              }],
+            });
+
+            // 3. 디스크에 파일 덮어쓰기 완료
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            // 4. 저장 성공 시 패치 완료를 알리고 자동 새로고침
+            btn.innerText = '패치 완료! 새로고침 중... 🔄';
+            setTimeout(() => {
+              window.location.reload();
+            }, 800);
+          } else {
+            throw new Error('Not supported');
+          }
+        } catch (error) {
+          // File System Access API 미지원 또는 사용자 취소 시 (기존 방식으로 Fallback)
+          const a = document.createElement('a');
+          a.href = directDownloadUrl;
+          a.download = 'handwriting-worksheet.html';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
       });
       document.getElementById('pwa-close-btn').addEventListener('click', () => {
         toast.remove();
