@@ -10,7 +10,7 @@
 > 아래 링크를 클릭하면 최신 버전이 다운로드됩니다.
 
 - **[📥 handwriting-worksheet.html 직접 다운로드](https://github.com/thd-oss/handwriting-worksheet/raw/main/handwriting-worksheet.html)**
-- **[📦 최신 릴리즈 페이지 (v1.1.0)](https://github.com/thd-oss/handwriting-worksheet/releases/latest)**
+- **[📦 최신 릴리즈 페이지 (v1.3.0)](https://github.com/thd-oss/handwriting-worksheet/releases/latest)**
 
 ---
 
