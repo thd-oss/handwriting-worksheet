@@ -639,6 +639,12 @@
       transition: background 0.2s;
     }
     .pwa-toast-btn:hover { background: #1d4ed8; }
+    .pwa-toast-close {
+      background: transparent; border: none; color: #94a3b8;
+      font-size: 1.1rem; cursor: pointer; padding: 0 4px;
+      line-height: 1; transition: color 0.2s;
+    }
+    .pwa-toast-close:hover { color: #ffffff; }
   </style>
 </head>
 
@@ -1923,12 +1929,16 @@
       toast.innerHTML = `
         <span>🔄 새로운 버전이 준비되었습니다.</span>
         <button class="pwa-toast-btn" id="pwa-refresh-btn">새로고침 적용</button>
+        <button class="pwa-toast-close" id="pwa-close-btn" title="닫기">✕</button>
       `;
 
       document.body.appendChild(toast);
 
       document.getElementById('pwa-refresh-btn').addEventListener('click', () => {
         worker.postMessage({ type: 'SKIP_WAITING' });
+      });
+      document.getElementById('pwa-close-btn').addEventListener('click', () => {
+        toast.remove();
       });
     }
 
@@ -1968,6 +1978,7 @@
       toast.innerHTML = `
         <span>🎉 새 버전(${newVer})이 출시되었습니다!</span>
         <button class="pwa-toast-btn" id="btn-direct-download">새 버전 바로 다운로드 📥</button>
+        <button class="pwa-toast-close" id="pwa-close-btn" title="닫기">✕</button>
       `;
 
       document.body.appendChild(toast);
@@ -1981,6 +1992,9 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+      });
+      document.getElementById('pwa-close-btn').addEventListener('click', () => {
+        toast.remove();
       });
     }
 
