@@ -1943,8 +1943,56 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       단일 HTML 다운로드 파일 실행 시 GitHub 최신 릴리즈 자동 체크 및 직접 다운로드
+       자동 업데이트 처리 (Electron IPC & PWA/GitHub Release Fallback)
     ═══════════════════════════════════════════════════════ */
+    function initUpdateChecker() {
+      if (window.electronAPI) {
+        // Electron 데스크톱 앱 환경
+        window.electronAPI.onUpdateAvailable((info) => {
+          showElectronToast('다운로드 중', info ? info.version : '');
+        });
+
+        window.electronAPI.onUpdateDownloaded((info) => {
+          showElectronToast('다운로드 완료', info ? info.version : '');
+        });
+      } else {
+        // 브라우저 단일 HTML 실행 환경
+        checkGitHubReleaseUpdate();
+      }
+    }
+
+    function showElectronToast(status, newVer) {
+      let toast = document.getElementById('pwa-update-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'pwa-update-toast';
+        toast.className = 'pwa-toast';
+        document.body.appendChild(toast);
+      }
+
+      if (status === '다운로드 중') {
+        toast.innerHTML = `
+          <span>🔄 새 버전(${newVer}) 백그라운드 다운로드 중...</span>
+          <button class="pwa-toast-close" id="pwa-close-btn" title="닫기">✕</button>
+        `;
+      } else if (status === '다운로드 완료') {
+        toast.innerHTML = `
+          <span>🎉 새 버전(${newVer}) 패치 준비 완료!</span>
+          <button class="pwa-toast-btn" id="btn-electron-install">재시작하여 적용 🚀</button>
+          <button class="pwa-toast-close" id="pwa-close-btn" title="닫기">✕</button>
+        `;
+        document.getElementById('btn-electron-install')?.addEventListener('click', () => {
+          if (window.electronAPI) {
+            window.electronAPI.quitAndInstall();
+          }
+        });
+      }
+
+      document.getElementById('pwa-close-btn')?.addEventListener('click', () => {
+        toast.remove();
+      });
+    }
+
     function checkGitHubReleaseUpdate() {
       // 3초 후 백그라운드 체크 (초기 실행 방해 금지)
       setTimeout(() => {
@@ -2037,8 +2085,8 @@
       });
     }
 
-    // 단일 파일 버전 체크 자동 실행
-    checkGitHubReleaseUpdate();
+    // 6. 업데이트 체크 초기화 (Electron IPC / PWA / GitHub Release)
+    initUpdateChecker();
   </script>
 </body>
 </html>

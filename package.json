@@ -1,0 +1,47 @@
+{
+  "name": "handwriting-worksheet",
+  "version": "1.5.0",
+  "description": "초등학생 맞춤형 원고지 / 줄공책 학습지 생성기 데스크톱 앱",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "author": "thd-oss",
+  "license": "MIT",
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "jsdom": "^29.1.1"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.thdoss.handwritingworksheet",
+    "productName": "바른 글씨 쓰기 학습지",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "handwriting-worksheet.html",
+      "sw.js",
+      "manifest.json"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "zip"]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "thd-oss",
+      "repo": "handwriting-worksheet"
+    }
+  }
+}
